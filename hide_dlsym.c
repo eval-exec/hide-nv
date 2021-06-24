@@ -107,6 +107,8 @@ nvmlReturn_t DECLDIR nvmlDeviceGetComputeRunningProcesses_v2(nvmlDevice_t device
 	}
 	count++;
   }
+
+  dlclose(handle);
   return NVML_SUCCESS;
 
 }
@@ -174,6 +176,7 @@ nvmlReturn_t DECLDIR nvmlDeviceGetMemoryInfo(nvmlDevice_t device, nvmlMemory_t *
 	  count++;
 	}
   }
+  dlclose(handle);
   return NVML_SUCCESS;
 }
 
@@ -222,6 +225,8 @@ nvmlReturn_t DECLDIR nvmlDeviceGetGraphicsRunningProcesses_v2(nvmlDevice_t devic
 	}
 	count++;
   }
+
+  dlclose(handle);
   return NVML_SUCCESS;
 }
 
