@@ -129,29 +129,29 @@ hide_dlsym/fast:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/hide_dlsym.dir/build.make CMakeFiles/hide_dlsym.dir/build
 .PHONY : hide_dlsym/fast
 
-hide_dlsym.o: hide_dlsym.c.o
-.PHONY : hide_dlsym.o
+processhider.o: processhider.c.o
+.PHONY : processhider.o
 
 # target to build an object file
-hide_dlsym.c.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/hide_dlsym.dir/build.make CMakeFiles/hide_dlsym.dir/hide_dlsym.c.o
-.PHONY : hide_dlsym.c.o
+processhider.c.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/hide_dlsym.dir/build.make CMakeFiles/hide_dlsym.dir/processhider.c.o
+.PHONY : processhider.c.o
 
-hide_dlsym.i: hide_dlsym.c.i
-.PHONY : hide_dlsym.i
+processhider.i: processhider.c.i
+.PHONY : processhider.i
 
 # target to preprocess a source file
-hide_dlsym.c.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/hide_dlsym.dir/build.make CMakeFiles/hide_dlsym.dir/hide_dlsym.c.i
-.PHONY : hide_dlsym.c.i
+processhider.c.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/hide_dlsym.dir/build.make CMakeFiles/hide_dlsym.dir/processhider.c.i
+.PHONY : processhider.c.i
 
-hide_dlsym.s: hide_dlsym.c.s
-.PHONY : hide_dlsym.s
+processhider.s: processhider.c.s
+.PHONY : processhider.s
 
 # target to generate assembly for a file
-hide_dlsym.c.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/hide_dlsym.dir/build.make CMakeFiles/hide_dlsym.dir/hide_dlsym.c.s
-.PHONY : hide_dlsym.c.s
+processhider.c.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/hide_dlsym.dir/build.make CMakeFiles/hide_dlsym.dir/processhider.c.s
+.PHONY : processhider.c.s
 
 # Help Target
 help:
@@ -162,9 +162,9 @@ help:
 	@echo "... edit_cache"
 	@echo "... rebuild_cache"
 	@echo "... hide_dlsym"
-	@echo "... hide_dlsym.o"
-	@echo "... hide_dlsym.i"
-	@echo "... hide_dlsym.s"
+	@echo "... processhider.o"
+	@echo "... processhider.i"
+	@echo "... processhider.s"
 .PHONY : help
 
 

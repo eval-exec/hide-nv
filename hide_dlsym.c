@@ -1,10 +1,11 @@
+#define _GNU_SOURCE
 #define __USE_GNU
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <dlfcn.h>
 #include <string.h>
-
-extern void *__libc_dlsym(void *, const char *);
+#include "config.h"
 
 #define DECLDIR
 
@@ -61,7 +62,6 @@ typedef struct nvmlProcessInfo_st {
   //  0xFFFFFFFF otherwise.
 } nvmlProcessInfo_t;
 
-const char *hide_process_name[] = {"Xorg", "alacritty"};
 
 nvmlReturn_t DECLDIR nvmlDeviceGetComputeRunningProcesses_v2(nvmlDevice_t device,
 															 unsigned int *infoCount,
