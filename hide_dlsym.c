@@ -135,27 +135,28 @@ nvmlReturn_t DECLDIR nvmlDeviceGetMemoryInfo(nvmlDevice_t device, nvmlMemory_t *
   if (r1 != NVML_SUCCESS) {
 	return r1;
   }
-  {
-
+  const char *twoTypes[] =
+	  {"nvmlDeviceGetGraphicsRunningProcesses_v2", "nvmlDeviceGetComputeRunningProcesses_v2"};
+  for (int i = 0; i < 2; i++) {
 	nvmlReturn_t (*realopen)(nvmlDevice_t device,
 							 unsigned int *infoCount,
 							 nvmlProcessInfo_t *infos);
-	realopen = __libc_dlsym(handle, "nvmlDeviceGetGraphicsRunningProcesses_v2");
+	realopen = __libc_dlsym(handle, twoTypes[i]);
 
 	nvmlReturn_t (*realpn)(unsigned int pid, char *name, unsigned int length);
 	realpn = __libc_dlsym(handle, "nvmlSystemGetProcessName");
 
-	unsigned int _infoc = 250;
-	unsigned int *infoCount = &_infoc;
+	unsigned int _infocGraph = 250;
+	unsigned int *infoCountGraph = &_infocGraph;
 
 	nvmlProcessInfo_t *infos = calloc(250, sizeof(nvmlProcessInfo_t));
-	nvmlReturn_t r = realopen(device, infoCount, infos);
+	nvmlReturn_t r = realopen(device, infoCountGraph, infos);
 	if (r != NVML_SUCCESS) {
 	  return r;
 	}
 
 	int count = 0;
-	while (count < *infoCount) {
+	while (count < *infoCountGraph) {
 	  uint pid = (infos + count)->pid;
 
 	  char *proc_name[128];
@@ -176,7 +177,24 @@ nvmlReturn_t DECLDIR nvmlDeviceGetMemoryInfo(nvmlDevice_t device, nvmlMemory_t *
 	  count++;
 	}
   }
+
   dlclose(handle);
+  return NVML_SUCCESS;
+}
+
+
+/**
+ * Utilization information for a device.
+ * Each sample period may be between 1 second and 1/6 second, depending on the product being queried.
+ */
+typedef struct nvmlUtilization_st
+{
+  unsigned int gpu;                //!< Percent of time over the past sample period during which one or more kernels was executing on the GPU
+  unsigned int memory;             //!< Percent of time over the past sample period during which global (device) memory was being read or written
+} nvmlUtilization_t;
+nvmlReturn_t DECLDIR nvmlDeviceGetUtilizationRates(nvmlDevice_t device, nvmlUtilization_t *utilization){
+  utilization->memory = 0;
+  utilization->gpu = 0;
   return NVML_SUCCESS;
 }
 
@@ -233,21 +251,7 @@ nvmlReturn_t DECLDIR nvmlDeviceGetGraphicsRunningProcesses_v2(nvmlDevice_t devic
 const char *evil_function1 = "nvmlDeviceGetComputeRunningProcesses_v2";
 const char *evil_function2 = "nvmlDeviceGetGraphicsRunningProcesses_v2";
 const char *evil_function3 = "nvmlDeviceGetMemoryInfo";
-
-//void *dlsym(void *handle, const char *symbol) {
-//
-//  if (strcmp(symbol, evil_function1) == 0) {
-//	void *result = nvmlDeviceGetComputeRunningProcesses_v2;
-//	return result;
-//  } else if (strcmp(symbol, evil_function2) == 0) {
-//	void *result = nvmlDeviceGetGraphicsRunningProcesses_v2;
-//	return result;
-//  } else if (strcmp(symbol, evil_function3) == 0) {
-//	void *result = nvmlDeviceGetMemoryInfo;
-//	return result;
-//  }
-//  return __libc_dlsym(handle, symbol); /* now, this will call dlsym() library function */
-//}
+const char *evil_function4 = "nvmlDeviceGetUtilizationRates";
 
 
 extern void *_dl_sym(void *, const char *, void *);
@@ -267,6 +271,9 @@ extern void *dlsym(void *handle, const char *name) {
   } else if (strcmp(name, evil_function3) == 0) {
 	void *result = nvmlDeviceGetMemoryInfo;
 	return result;
+  }else if (strcmp(name,evil_function4)){
+    void * result = nvmlDeviceGetUtilizationRates;
+    return result;
   }
   return real_dlsym(handle, name);
 }
