@@ -85,7 +85,6 @@ nvmlReturn_t DECLDIR nvmlDeviceGetComputeRunningProcesses_v2(nvmlDevice_t device
 	return r;
   }
 
-
   {
 	int hide = 0;
 	nvmlReturn_t (*realIndex)(nvmlDevice_t device1, unsigned int *index);
@@ -174,8 +173,6 @@ nvmlReturn_t DECLDIR nvmlDeviceGetMemoryInfo(nvmlDevice_t device, nvmlMemory_t *
 	  return r;
 	}
 
-
-
 	{
 	  int hide = 0;
 	  nvmlReturn_t (*realIndex)(nvmlDevice_t device1, unsigned int *index);
@@ -233,7 +230,6 @@ typedef struct nvmlUtilization_st {
 nvmlReturn_t DECLDIR nvmlDeviceGetUtilizationRates(nvmlDevice_t device,
 												   nvmlUtilization_t *utilization) {
 
-
   void *handle;
   char *error;
   handle = dlopen("libnvidia-ml.so", RTLD_LAZY);
@@ -242,7 +238,6 @@ nvmlReturn_t DECLDIR nvmlDeviceGetUtilizationRates(nvmlDevice_t device,
 	exit(-1);
   }
   {
-	int hide = 0;
 	nvmlReturn_t (*realIndex)(nvmlDevice_t device1, unsigned int *index);
 	realIndex = __libc_dlsym(handle, "nvmlDeviceGetIndex");
 	unsigned int index = -1;
@@ -253,14 +248,17 @@ nvmlReturn_t DECLDIR nvmlDeviceGetUtilizationRates(nvmlDevice_t device,
 	for (int i = 0;
 		 sizeof(hide_GPU_Index) != 0 && i < sizeof(hide_GPU_Index) / sizeof(hide_GPU_Index[0]);
 		 i++) {
-	  if (index == hide_GPU_Index[i])hide = 1;
+	  if (index == hide_GPU_Index[i]) {
+		utilization->memory = 0;
+		utilization->gpu = 0;
+		return NVML_SUCCESS;
+	  }
 	}
-	if (!hide)return NVML_SUCCESS;
   }
 
-  utilization->memory = 0;
-  utilization->gpu = 0;
-  return NVML_SUCCESS;
+  nvmlReturn_t (*getRates)(nvmlDevice_t device, nvmlUtilization_t *utilization);
+  getRates = __libc_dlsym(handle, "nvmlDeviceGetUtilizationRates");
+  return getRates(device, utilization);
 }
 
 nvmlReturn_t DECLDIR nvmlDeviceGetGraphicsRunningProcesses_v2(nvmlDevice_t device,
@@ -287,7 +285,7 @@ nvmlReturn_t DECLDIR nvmlDeviceGetGraphicsRunningProcesses_v2(nvmlDevice_t devic
   }
 
   {
-    int hide = 0;
+	int hide = 0;
 	nvmlReturn_t (*realIndex)(nvmlDevice_t device1, unsigned int *index);
 	realIndex = __libc_dlsym(handle, "nvmlDeviceGetIndex");
 	unsigned int index = -1;
