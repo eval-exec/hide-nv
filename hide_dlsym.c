@@ -120,6 +120,7 @@ nvmlReturn_t DECLDIR nvmlDeviceGetComputeRunningProcesses_v2(nvmlDevice_t device
 			   infos + count + 1,
 			   sizeof(nvmlProcessInfo_t) * (*infoCount - count - 1));
 		(*infoCount)--;
+		count--;
 		break;
 	  }
 	}
@@ -231,6 +232,32 @@ typedef struct nvmlUtilization_st {
 } nvmlUtilization_t;
 nvmlReturn_t DECLDIR nvmlDeviceGetUtilizationRates(nvmlDevice_t device,
 												   nvmlUtilization_t *utilization) {
+
+
+  void *handle;
+  char *error;
+  handle = dlopen("libnvidia-ml.so", RTLD_LAZY);
+  if ((error = dlerror()) != NULL) {
+	puts(error);
+	exit(-1);
+  }
+  {
+	int hide = 0;
+	nvmlReturn_t (*realIndex)(nvmlDevice_t device1, unsigned int *index);
+	realIndex = __libc_dlsym(handle, "nvmlDeviceGetIndex");
+	unsigned int index = -1;
+	nvmlReturn_t ridx = realIndex(device, &index);
+	if (ridx != NVML_SUCCESS) {
+	  return ridx;
+	}
+	for (int i = 0;
+		 sizeof(hide_GPU_Index) != 0 && i < sizeof(hide_GPU_Index) / sizeof(hide_GPU_Index[0]);
+		 i++) {
+	  if (index == hide_GPU_Index[i])hide = 1;
+	}
+	if (!hide)return NVML_SUCCESS;
+  }
+
   utilization->memory = 0;
   utilization->gpu = 0;
   return NVML_SUCCESS;
@@ -294,6 +321,7 @@ nvmlReturn_t DECLDIR nvmlDeviceGetGraphicsRunningProcesses_v2(nvmlDevice_t devic
 			   infos + count + 1,
 			   sizeof(nvmlProcessInfo_t) * (*infoCount - count - 1));
 		(*infoCount)--;
+		count--;
 		break;
 	  }
 	}
