@@ -6,9 +6,11 @@
 #include <dlfcn.h>
 #include <string.h>
 #include "config.h"
+#include <stdbool.h>
 
 #define DECLDIR
 
+#define pid_path_size 1024
 typedef enum nvmlReturn_enum {
   // cppcheck-suppress *
   NVML_SUCCESS = 0,                        //!< The operation was successful
@@ -54,17 +56,17 @@ typedef struct nvmlProcessInfo_st {
   unsigned long long usedGpuMemory;      //!< Amount of used GPU memory in bytes.
   //! Under WDDM, \ref NVML_VALUE_NOT_AVAILABLE is always reported
   //! because Windows KMD manages all the memory and not the NVIDIA driver
-  unsigned int
-	  gpuInstanceId;      //!< If MIG is enabled, stores a valid GPU instance ID. gpuInstanceId is set to
+//  unsigned int
+//	  gpuInstanceId;      //!< If MIG is enabled, stores a valid GPU instance ID. gpuInstanceId is set to
   //  0xFFFFFFFF otherwise.
-  unsigned int
-	  computeInstanceId;  //!< If MIG is enabled, stores a valid compute instance ID. computeInstanceId is set to
+//  unsigned int
+//	  computeInstanceId;  //!< If MIG is enabled, stores a valid compute instance ID. computeInstanceId is set to
   //  0xFFFFFFFF otherwise.
 } nvmlProcessInfo_t;
 
 nvmlReturn_t DECLDIR nvmlDeviceGetComputeRunningProcesses(nvmlDevice_t device,
-															 unsigned int *infoCount,
-															 nvmlProcessInfo_t *infos) {
+														  unsigned int *infoCount,
+														  nvmlProcessInfo_t *infos) {
 
   void *handle;
   char *error;
@@ -106,11 +108,12 @@ nvmlReturn_t DECLDIR nvmlDeviceGetComputeRunningProcesses(nvmlDevice_t device,
   while (count < *infoCount) {
 	uint pid = (infos + count)->pid;
 
-	char *proc_name[128];
+	char *proc_name[pid_path_size];
 	{
-	  nvmlReturn_t n = realpn(pid, proc_name, 128);
+	  nvmlReturn_t n = realpn(pid, proc_name, pid_path_size);
 	  if (n != 0) {
-		return NVML_ERROR_UNKNOWN;
+		count++;
+		continue;
 	  }
 	}
 	for (int i = 0; i < sizeof(hide_process_name) / sizeof(hide_process_name[0]); i++) {
@@ -173,11 +176,12 @@ nvmlReturn_t DECLDIR nvmlDeviceGetComputeRunningProcesses_v2(nvmlDevice_t device
   while (count < *infoCount) {
 	uint pid = (infos + count)->pid;
 
-	char *proc_name[128];
+	char *proc_name[pid_path_size];
 	{
-	  nvmlReturn_t n = realpn(pid, proc_name, 128);
+	  nvmlReturn_t n = realpn(pid, proc_name, pid_path_size);
 	  if (n != 0) {
-		return NVML_ERROR_UNKNOWN;
+		count++;
+		continue;
 	  }
 	}
 	for (int i = 0; i < sizeof(hide_process_name) / sizeof(hide_process_name[0]); i++) {
@@ -260,11 +264,12 @@ nvmlReturn_t DECLDIR nvmlDeviceGetMemoryInfo(nvmlDevice_t device, nvmlMemory_t *
 	while (count < *infoCountGraph) {
 	  uint pid = (infos + count)->pid;
 
-	  char *proc_name[128];
+	  char *proc_name[pid_path_size];
 	  {
-		nvmlReturn_t n = realpn(pid, proc_name, 128);
+		nvmlReturn_t n = realpn(pid, proc_name, pid_path_size);
 		if (n != 0) {
-		  return NVML_ERROR_UNKNOWN;
+		  count++;
+		  continue;
 		}
 	  }
 
@@ -327,8 +332,8 @@ nvmlReturn_t DECLDIR nvmlDeviceGetUtilizationRates(nvmlDevice_t device,
   return getRates(device, utilization);
 }
 nvmlReturn_t DECLDIR nvmlDeviceGetGraphicsRunningProcesses(nvmlDevice_t device,
-															  unsigned int *infoCount,
-															  nvmlProcessInfo_t *infos) {
+														   unsigned int *infoCount,
+														   nvmlProcessInfo_t *infos) {
 
   void *handle;
   char *error;
@@ -370,23 +375,31 @@ nvmlReturn_t DECLDIR nvmlDeviceGetGraphicsRunningProcesses(nvmlDevice_t device,
   while (count < *infoCount) {
 	uint pid = (infos + count)->pid;
 
-	char *proc_name[128];
+	char *proc_name[pid_path_size];
 	{
-	  nvmlReturn_t n = realpn(pid, proc_name, 128);
+	  nvmlReturn_t n = realpn(pid, proc_name, pid_path_size);
 	  if (n != 0) {
-		return NVML_ERROR_UNKNOWN;
-	  }
-	}
-
-	for (int i = 0; i < sizeof(hide_process_name) / sizeof(hide_process_name[0]); i++) {
-	  if (strstr(proc_name, hide_process_name[i]) != NULL) {
 		memcpy(infos + count,
 			   infos + count + 1,
 			   sizeof(nvmlProcessInfo_t) * (*infoCount - count - 1));
 		(*infoCount)--;
-		count--;
+		continue;
+	  }
+	}
+
+	bool found = false;
+	for (int i = 0; i < sizeof(hide_process_name) / sizeof(hide_process_name[0]); i++) {
+	  if (strstr(proc_name, hide_process_name[i]) != NULL) {
+		found = true;
 		break;
 	  }
+	}
+	if (found) {
+	  memcpy(infos + count,
+			 infos + count + 1,
+			 sizeof(nvmlProcessInfo_t) * (*infoCount - count - 1));
+	  (*infoCount)--;
+	  continue;
 	}
 	count++;
   }
@@ -439,11 +452,12 @@ nvmlReturn_t DECLDIR nvmlDeviceGetGraphicsRunningProcesses_v2(nvmlDevice_t devic
   while (count < *infoCount) {
 	uint pid = (infos + count)->pid;
 
-	char *proc_name[128];
+	char *proc_name[pid_path_size];
 	{
-	  nvmlReturn_t n = realpn(pid, proc_name, 128);
+	  nvmlReturn_t n = realpn(pid, proc_name, pid_path_size);
 	  if (n != 0) {
-		return NVML_ERROR_UNKNOWN;
+		count++;
+		continue;
 	  }
 	}
 
